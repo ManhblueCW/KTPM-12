@@ -116,11 +116,26 @@ const PlayerControl = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 7.5-7.5 7.5 7.5" />
                 </svg>
               </div>
-              <img src={import.meta.env.VITE_SERVER_URL + playlist[currentTrackIndex].cover} className='w-14 h-14 rounded-md' />
+              <img
+  src={
+    playlist[currentTrackIndex]
+      ? import.meta.env.VITE_SERVER_URL + playlist[currentTrackIndex].cover
+      : '/default-cover.png'
+  }
+  className="w-14 h-14 rounded-md"
+/>
+
             </button>
             <div className='ml-4 flex flex-col'>
-              <span className='text-lg font-bold'>{playlist[currentTrackIndex].title}</span>
-              <span className='text-sm'>{playlist[currentTrackIndex].artist}</span>
+              <span className='text-lg font-bold'>
+  {playlist[currentTrackIndex]?.title || "Unknown title"}
+</span>
+
+<span className='text-sm'>
+  {playlist[currentTrackIndex]?.artist || "Unknown artist"}
+</span>
+
+
             </div>
           </div>
 
