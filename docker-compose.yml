@@ -1,0 +1,35 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  api:
+    build: ./zero-music-backend
+    container_name: music_api
+    restart: always
+    ports:
+      - "5000:5000"
+    env_file: ./zero-music-backend/.env
+    volumes:
+      - ./zero-music-backend:/app
+      - ./zero-music-backend/public:/app/public
+    depends_on:
+      - mongo
+    command: ["node", "app.js"]
+
+  client:
+    build: ./zero-music-frontend
+    container_name: music_client
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+
+volumes:
+  mongo_data:

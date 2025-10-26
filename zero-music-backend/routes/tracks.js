@@ -47,7 +47,7 @@ router.get('/:trackId?', async (req, res) => {
 });
 
 // POST create a new track
-router.post('/', [authenticateToken, isAdmin, handleFormidable], async (req, res) => {
+router.post('/', authenticateToken, isAdmin, handleFormidable, async (req, res) => {
   const { fields, files } = req;
   const title = fields.title[0];
   const artist = fields.artist[0];
@@ -89,6 +89,8 @@ router.post('/', [authenticateToken, isAdmin, handleFormidable], async (req, res
     track: trackPath || undefined,
   };
 
+  // console.log("📥 Received track upload request");
+  // console.log("UpdateData:", updateData);
   try {
     const track = new Track(updateData);
     await track.save();
