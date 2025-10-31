@@ -26,7 +26,7 @@ const port = process.env.PORT || 3000;
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://192.168.157.12:5173",  // Replace with your client's URL or set to true
+    origin: "http://localhost:5173",  // Replace with your client's URL or set to true
     methods: ["GET", "POST"],
     credentials: true
   }
