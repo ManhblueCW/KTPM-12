@@ -11,7 +11,7 @@ const storeFile = async (file, type, newFilename) => {
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
   }
-
+  fs.mkdirSync(path.dirname(newPath), { recursive: true });
   fs.copyFileSync(oldPath, newPath);
   fs.unlinkSync(oldPath);
 
@@ -23,16 +23,29 @@ const storeFile = async (file, type, newFilename) => {
 
 // Middleware to handle file uploads with formidable
 const handleFormidable = (req, res, next) => {
-  const form = formidable({});
+  const form = formidable({
+    keepExtensions: true,
+    multiples: true,
+    uploadDir: path.join(process.cwd(), 'public'),
+  });
+
   form.parse(req, (err, fields, files) => {
-    if (err) {
-      res.status(400).json({ error: err.message });
-      return;
-    }
+    // if (err) {
+    //   console.error("Formidable error:", err);
+    //   res.status(400).json({ error: err.message });
+    //   return;
+    // }
+
+    // console.log("Form parsed successfully");
+    // console.log("Fields:", fields);
+    // console.log("Files:", files);
+
     req.fields = fields;
     req.files = files;
     next();
   });
 };
+
+
 
 export { storeFile, handleFormidable };
