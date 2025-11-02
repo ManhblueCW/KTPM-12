@@ -6,7 +6,8 @@ const router = express.Router();
 
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const posts = await postService.getFeed(req.user.id);
+    const token = req.headers.authorization; // 👈
+    const posts = await postService.getFeed(req.user.id, token);
     res.status(200).json({ success: true, data: posts });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });

@@ -1,44 +1,57 @@
 import User from '../models/User.js';
-import bcrypt from 'bcryptjs';
-import { storeFile } from '../utils/file.js';
+import axios from 'axios';
+import FormData from 'form-data';
+import fs from 'fs';
+import 'dotenv/config';
+import path from 'path';
 
-export async function registerUser({ username, name, password, avatarFile, useDefaultAvatar }) {
-  const existingUser = await User.findOne({ username });
-  if (existingUser) throw new Error('Username already exists');
-
-  const hashedPassword = await bcrypt.hash(password, 12);
-
-  let avatarPath;
-  if (avatarFile) {
-    const result = await storeFile(avatarFile, 'avatars', username);
-    avatarPath = result.webPath;
-  }
-  if (useDefaultAvatar) avatarPath = '/assets/default-avatar-s.png';
-
-  const user = new User({ username, name, password: hashedPassword, avatar: avatarPath });
-  await user.save();
-  return user;
-}
-
-export async function updateUser(userId, { username, name, password, avatarFile, useDefaultAvatar }) {
-  const hashedPassword = password ? await bcrypt.hash(password, 12) : undefined;
-
-  let avatarPath;
-  if (avatarFile) {
-    const result = await storeFile(avatarFile, 'avatars', username);
-    avatarPath = result.webPath;
-  }
-  if (useDefaultAvatar) avatarPath = '/assets/default-avatar-s.png';
-
+/**
+ * Cập nhật thông tin người dùng (hỗ trợ cả JSON và multipart/form-data)
+ */
+export async function updateUser(userId, { username, name, avatarFile, useDefaultAvatar, avatar }) {
   const updateData = {};
+
   if (username) updateData.username = username;
   if (name) updateData.name = name;
-  if (hashedPassword) updateData.password = hashedPassword;
-  if (avatarPath) updateData.avatar = avatarPath;
 
+  // ===== 1️⃣ Nếu có upload file avatar mới =====
+  if (avatarFile && !useDefaultAvatar) {
+    const uploadsDir = path.join(process.cwd(), 'public', 'avatars');
+    const ext = path.extname(avatarFile.originalFilename || '');
+    const newFilename = `${userId}${ext}`;
+    const newPath = path.join(uploadsDir, newFilename);
+    const webPath = `/avatars/${newFilename}`;
+
+    // Đảm bảo thư mục tồn tại
+    fs.mkdirSync(uploadsDir, { recursive: true });
+
+    // Lưu file
+    fs.copyFileSync(avatarFile.filepath, newPath);
+    fs.unlinkSync(avatarFile.filepath); // Xóa file tạm
+
+    updateData.avatar = webPath;
+    console.log('✅ Avatar file saved:', webPath);
+  }
+
+  // ===== 2️⃣ Nếu người dùng truyền avatar URL (không upload file) =====
+  else if (avatar && !useDefaultAvatar) {
+    updateData.avatar = avatar;
+    console.log('✅ Avatar set from URL:', avatar);
+  }
+
+  // ===== 3️⃣ Nếu người dùng chọn dùng avatar mặc định =====
+  else if (useDefaultAvatar) {
+    updateData.avatar = '/assets/default-avatar-s.png';
+    console.log('✅ Avatar reset to default');
+  }
+
+  // ===== 4️⃣ Cập nhật DB =====
   const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
+  console.log('✅ User updated:', user?._id);
+
   return user;
 }
+
 
 export async function followUser(currentUserId, userIdToFollow) {
   await User.findByIdAndUpdate(currentUserId, { $addToSet: { following: userIdToFollow } });

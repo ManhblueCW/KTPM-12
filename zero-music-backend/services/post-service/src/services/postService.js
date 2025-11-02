@@ -1,30 +1,53 @@
 import Post from '../models/Post.js';
 import axios from 'axios';
 
-export async function getFeed(userId) {
-  // Lấy danh sách following từ Auth service
-  const authResp = await axios.get(`${process.env.AUTH_SERVICE_URL}/user/${userId}`);
-  const following = authResp.data.user.following || [];
-  following.push(userId);
+export async function getFeed(userId, token) {
+  const userServiceUrl = process.env.USER_SERVICE_URL;
+  const musicServiceUrl = process.env.MUSIC_SERVICE_URL;
 
+  console.log('User Service URL:', userServiceUrl);
+  let following = [];
+
+  // --- Lấy danh sách following từ User Service ---
+  try {
+    const userResp = await axios.get(`${userServiceUrl}/${userId}`, {
+      headers: {
+        Authorization: token, // 👈 forward token FE gửi
+      },
+    });
+
+    following = userResp.data?.user?.following || [];
+    following.push(userId);
+    console.log('Following list:', following);
+  } catch (err) {
+    console.error('[PostService] Failed to fetch following list:', err.message);
+    console.error('Response data:', err.response?.data);
+    throw new Error(`Cannot get following list: ${err.message}`);
+  }
+
+  // --- Lấy post ---
   const posts = await Post.find({ userId: { $in: following } })
     .sort({ timestamp: -1 })
     .lean();
 
-  // Lấy user info và track info từ các service tương ứng
+  // --- Bổ sung thông tin user và bài nhạc ---
   for (let post of posts) {
-    // User info
+    // Thông tin user
     try {
-      const userResp = await axios.get(`${process.env.AUTH_SERVICE_URL}/user/${post.userId}`);
-      post.user = { id: post.userId, name: userResp.data.user.name, avatar: userResp.data.user.avatar };
+      const userData = await axios.get(`${userServiceUrl}/${post.userId}`, {
+        headers: { Authorization: token }, // 👈 forward token
+      });
+      post.user = userData.data?.user || { name: 'Unknown', avatar: '' };
     } catch {
-      post.user = { id: post.userId, name: 'Unknown', avatar: '' };
+      post.user = { name: 'Unknown', avatar: '' };
     }
 
-    // Track info
+    // Thông tin track
     if (post.trackId) {
       try {
-        const trackResp = await axios.get(`${process.env.MUSIC_SERVICE_URL}/tracks/${post.trackId}`);
+        const trackResp = await axios.get(`${musicServiceUrl}/tracks/${post.trackId}`, {
+          headers: { Authorization: token }, // 👈 forward token
+        });
         post.track = trackResp.data;
       } catch {
         post.track = null;

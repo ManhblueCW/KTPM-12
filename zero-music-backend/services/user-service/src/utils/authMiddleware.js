@@ -1,15 +1,13 @@
-import axios from 'axios';
-import 'dotenv/config';
+import jwt from "jsonwebtoken";
 
-export async function authMiddleware(req, res, next) {
-  const token = req.headers['authorization']?.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'No token provided' });
+export function authenticateToken(req, res, next) {
+  const token = req.headers["authorization"]?.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "No token" });
 
   try {
-    const resp = await axios.post(`${process.env.AUTH_SERVICE_URL}/verify`, { token });
-    req.user = resp.data.user;
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
-  } catch (err) {
-    res.status(401).json({ error: 'Invalid token' });
+  } catch {
+    res.status(401).json({ error: "Invalid token" });
   }
 }

@@ -9,11 +9,17 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   const userId = req.user.id;
   try {
-    const chatListData = await getChatPartners(userId);
+    const token = req.headers.authorization; // Get token from request headers
+    const chatListData = await getChatPartners(userId, token);
 
     // Optionally call Auth service to get avatar of current user
-    const userResp = await axios.get(`${process.env.AUTH_SERVICE_URL}/user/${userId}`);
-    const userAvatar = userResp.data.user.avatar;
+    const userResp = await axios.get(`${process.env.USER_SERVICE_URL}/${userId}`, {
+      headers: {
+         Authorization: token 
+        },
+    });
+
+    const userAvatar = userResp.data?.user?.avatar;
 
     res.status(200).json({ success: true, userAvatar, data: chatListData });
   } catch (error) {

@@ -14,11 +14,12 @@ export async function getAllTracks(userId) {
   return tracks;
 }
 
-export async function createTrack(data) {
-  const track = new Track(data);
+export async function createTrack(data, userId) {
+  const track = new Track({ ...data, userId });
   await track.save();
   return track;
 }
+
 
 export async function getTrackById(trackId) {
   return await Track.findById(trackId).lean();
