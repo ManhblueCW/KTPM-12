@@ -1,0 +1,186 @@
+version: '3.8'
+
+services:
+  # MongoDB
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - microservices-network
+
+  # Auth Service
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - MONGO_URI=mongodb://mongodb:27017/auth-service-db
+      - JWT_SECRET_KEY=your_secret_key_here
+    depends_on:
+      - mongodb
+    networks:
+      - microservices-network
+
+  # User Service
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - MONGO_URI=mongodb://mongodb:27017/user-service-db
+      - JWT_SECRET_KEY=your_secret_key_here
+    depends_on:
+      - mongodb
+    networks:
+      - microservices-network
+
+  # Track Service
+  track-service:
+    build: ./track-service
+    container_name: track-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - MONGO_URI=mongodb://mongodb:27017/track-service-db
+      - JWT_SECRET_KEY=your_secret_key_here
+      - USER_SERVICE_URL=http://user-service:3002
+    depends_on:
+      - mongodb
+      - user-service
+    networks:
+      - microservices-network
+
+  # Playlist Service
+  playlist-service:
+    build: ./playlist-service
+    container_name: playlist-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+      - MONGO_URI=mongodb://mongodb:27017/playlist-service-db
+      - JWT_SECRET_KEY=your_secret_key_here
+      - USER_SERVICE_URL=http://user-service:3002
+      - TRACK_SERVICE_URL=http://track-service:3003
+    depends_on:
+      - mongodb
+      - user-service
+      - track-service
+    networks:
+      - microservices-network
+
+  # Drive Service
+  drive-service:
+    build: ./drive-service
+    container_name: drive-service
+    ports:
+      - "3005:3005"
+    environment:
+      - PORT=3005
+      - MONGO_URI=mongodb://mongodb:27017/drive-service-db
+      - JWT_SECRET_KEY=your_secret_key_here
+      - USER_SERVICE_URL=http://user-service:3002
+    depends_on:
+      - mongodb
+      - user-service
+    networks:
+      - microservices-network
+
+  # Favorites Service
+  favorite-service:
+    build: ./favorite-service
+    container_name: favorite-service
+    ports:
+      - "3006:3006"
+    environment:
+      - PORT=3006
+      - MONGO_URI=mongodb://mongodb:27017/favorite-service-db
+      - JWT_SECRET_KEY=your_secret_key_here
+      - USER_SERVICE_URL=http://user-service:3002
+    depends_on:
+      - mongodb
+      - user-service
+    networks:
+      - microservices-network
+
+  # Social Service
+  social-service:
+    build: ./social-service
+    container_name: social-service
+    ports:
+      - "3007:3007"
+    environment:
+      - PORT=3007
+      - MONGO_URI=mongodb://mongodb:27017/social-service-db
+      - JWT_SECRET_KEY=your_secret_key_here
+      - USER_SERVICE_URL=http://user-service:3002
+      - CLIENT_URL=http://192.168.157.12:5173
+    depends_on:
+      - mongodb
+      - user-service
+    networks:
+      - microservices-network
+
+  # Search Service
+  search-service:
+    build: ./search-service
+    container_name: search-service
+    ports:
+      - "3008:3008"
+    environment:
+      - PORT=3008
+      - MONGO_URI=mongodb://mongodb:27017/search-service-db
+      - TRACK_SERVICE_URL=http://track-service:3003
+      - USER_SERVICE_URL=http://user-service:3002
+    depends_on:
+      - mongodb
+      - track-service
+      - user-service
+    networks:
+      - microservices-network
+
+  # API Gateway
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USER_SERVICE_URL=http://user-service:3002
+      - TRACK_SERVICE_URL=http://track-service:3003
+      - PLAYLIST_SERVICE_URL=http://playlist-service:3004
+      - DRIVE_SERVICE_URL=http://drive-service:3005
+      - FAVORITES_SERVICE_URL=http://favorite-service:3006
+      - SOCIAL_SERVICE_URL=http://social-service:3007
+      - SEARCH_SERVICE_URL=http://search-service:3008
+      - JWT_SECRET_KEY=your_secret_key_here
+      - CLIENT_URL=http://192.168.157.12:5173
+    depends_on:
+      - auth-service
+      - user-service
+      - track-service
+      - playlist-service
+      - drive-service
+      - favorite-service
+      - social-service
+      - search-service
+    networks:
+      - microservices-network
+
+networks:
+  microservices-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
